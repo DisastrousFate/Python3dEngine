@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import Tk, Canvas
 from math import cos, sin, pi, sqrt, atan2
 
-
 # Create the main window
 window = Tk()
+window.geometry("400x400")  # Set the window size to 400x400
 
 # Create a canvas widget
 canvas = Canvas(window, width=400, height=400)
@@ -38,63 +38,67 @@ edges = [
     (3, 7)
 ]
 
-# Define the rotation angles
-angle_x = 0
-angle_y = 0
+# Calculate the center point of the cube
+def calculate_center():
+    x_sum = 0
+    y_sum = 0
+    z_sum = 0
+    for vertex in vertices:
+        x_sum += vertex[0]
+        y_sum += vertex[1]
+        z_sum += vertex[2]
+    return (x_sum / len(vertices), y_sum / len(vertices), z_sum / len(vertices))
 
-
-diagonal1 = vertices[0]
-diagonal2 = vertices[6]
-center = ((diagonal1[0] + diagonal2[0]) / 2, (diagonal1[1] + diagonal2[1]) / 2, (diagonal1[2] + diagonal2[2]) / 2)
-
-# Function to rotate the cube
-def rotate_cube():
-    global angle_x, angle_y
-    angle_x += 0.1  # Update the rotation angle around the x-axis with a smaller increment for slower rotation
-    angle_y += 0.1  # Update the rotation angle around the y-axis with a smaller increment for slower rotation
-
-    # Clear the canvas
-    canvas.delete("all")
-
-    # Draw the rotated cube
+# Draw the cube
+def draw_cube():
+    canvas.delete("all")  # Clear the canvas
     for edge in edges:
         x1, y1, z1 = vertices[edge[0]]
         x2, y2, z2 = vertices[edge[1]]
-        # Translate the vertices to the origin
-        x1 -= center[0]
-        y1 -= center[1]
-        z1 -= center[2]
-        x2 -= center[0]
-        y2 -= center[1]
-        z2 -= center[2]
-        # Rotate the vertices around the center point
-        x1, z1 = x1 * cos(angle_x) - z1 * sin(angle_x), x1 * sin(angle_x) + z1 * cos(angle_x)
-        y1, z1 = y1 * cos(angle_y) - z1 * sin(angle_y), y1 * sin(angle_y) + z1 * cos(angle_y)
-        x2, z2 = x2 * cos(angle_x) - z2 * sin(angle_x), x2 * sin(angle_x) + z2 * cos(angle_x)
-        y2, z2 = y2 * cos(angle_y) - z2 * sin(angle_y), y2 * sin(angle_y) + z2 * cos(angle_y)
-        # Translate the vertices back to their original position
-        x1 += center[0]
-        y1 += center[1]
-        z1 += center[2]
-        x2 += center[0]
-        y2 += center[1]
-        z2 += center[2]
-        # Project the 3D coordinates onto the 2D canvas
-        x1, y1 = x1 + 200, y1 + 200
-        x2, y2 = x2 + 200, y2 + 200
         canvas.create_line(x1, y1, x2, y2)
 
-    # Schedule the next rotation
-    canvas.after(10, rotate_cube)
+    # Draw the center point
+    x, y, z = calculate_center()
+    canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="red")
 
-# Function to translate the cube
-def translate_cube(dx, dy, dz):
-    global center
-    center = (center[0] + dx, center[1] + dy, center[2] + dz)
+# Rotate the cube around the x, y, and z axes
+def rotate(x_angle, y_angle, z_angle):
+    center = calculate_center()
+    for i in range(len(vertices)):
+        x, y, z = vertices[i]
+        x -= center[0]
+        y -= center[1]
+        z -= center[2]
+        new_x = x * cos(x_angle) - y * sin(x_angle)
+        new_y = x * sin(x_angle) + y * cos(x_angle)
+        new_z = z * cos(z_angle) - new_y * sin(z_angle)
+        new_y = z * sin(z_angle) + new_y * cos(z_angle)
+        new_z = new_x * sin(y_angle) + new_z * cos(y_angle)
+        new_x = new_x * cos(y_angle) - new_z * sin(y_angle)
+        vertices[i] = (new_x + center[0], new_y + center[1], new_z + center[2])
+    draw_cube()
 
-translate_cube(-150,-150,-150)  # Translate the cube to the centroid
+# Move the center point, constrain verticies to the same relative positions
+def move_center(new_x, new_y):
+    center = calculate_center()
+    x_diff = new_x - center[0]
+    y_diff = new_y - center[1]
+    for i in range(len(vertices)):
+        vertices[i] = (vertices[i][0] + x_diff, vertices[i][1] + y_diff, vertices[i][2])
+    draw_cube()
 
-# Start the rotation
+# Draw the initial cube
+draw_cube()
+
+# Example usage: move the center point to (300, 300)
+move_center(200, 200)
+
+# Function to periodically rotate the cube
+def rotate_cube():
+    rotate(0.01, 0.01, 0.01)
+    window.after(10, rotate_cube)  # Call the function again after 10 milliseconds
+
+# Start rotating the cube
 rotate_cube()
 
 # Start the main event loop
